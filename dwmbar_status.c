@@ -252,7 +252,7 @@ xkbrules_layouts(Display *dpy, char out_langs[12][24], int *out_langcount)
 	int fmt;
 	unsigned long nitems, bytes_after;
 	unsigned char *data;
-	char *iter, *iter_end;
+	char *iter;
 	Atom actual_type;
 	int idx, i;
 	Atom rules =
@@ -265,10 +265,7 @@ xkbrules_layouts(Display *dpy, char out_langs[12][24], int *out_langcount)
 		&data) != Success)
 
 		return -1;
-	
-	iter_end = ((char *)data) + nitems;
-	for (iter = (char *)data; iter < iter_end; iter = (strchr(iter, '\0') + 1))
-		printf("[debug] _XKB_RULES_NAMES => \"%s\"\n", iter);
+
 	iter = strchr(strchr((const char *)data, '\0') + 1, '\0') + 1;
 	for (idx = 0; *iter; idx += 1) {
 		i = 0;
@@ -451,10 +448,20 @@ main(void)
 		}
 
 		if (update_flag) {
+#ifdef _DEBUG
+			char a[12][24];
+			int lc;
+			xkbrules_layouts(dpy, a, &lc);
+#endif
+			
 			snprintf(err_buf, sizeof(err_buf),
 				"%s cpu:%.2f%% memfree:%.02f%% "
 				"%02i/%02i [%02i:%02i]",
+#ifdef _DEBUG
+				a
+#else
 				kbd_layout_state.names
+#endif
 				[kbd_layout_state.active_index],
 				cpu_load_percentage, mem_free_percent(),
 				now.day, now.month, now.hour, now.minute);
