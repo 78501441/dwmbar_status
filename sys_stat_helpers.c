@@ -1,6 +1,9 @@
 #define _POSIX_C_SOURCE 200809L
 #include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -103,4 +106,70 @@ timenow(void)
 	ret.hour = tspec.tm_hour;
 	ret.minute = tspec.tm_min;
 	return ret;
+}
+
+static int
+is_dot_or_dotdot(const char *qp)
+{
+	if (qp[0] == '.')
+		if ( qp[1] == '\0' || (qp[1] == '.' && qp[2] == '\0') )
+			return 1;
+	return 0;
+}
+
+static int
+readsz(const char *path, char *buf, size_t n)
+{
+	size_t n_read;
+	int res;
+	FILE *f = fopen(path, "r");
+	if (!f)
+		return -1;
+	n_read = fread(buf, 1, n - 1, f);
+	buf[n_read] = '\0';
+	res = ferror(f);
+	fclose(f);
+	return res;
+}
+
+char *
+report_ifaces(void)
+{
+	char path[512];
+	DIR *dirp = opendir("/sys/class/net");
+	if (!dirp)
+		return NULL;
+
+	char *total_if_status_str = malloc(2048);
+	char oper_status[24];
+	struct dirent *d_entry;
+	char *nl;
+	fprintf(stderr, "[debug] opened dir (%p)\n", (void *)dirp);
+	total_if_status_str[0] = '\0';
+	while ((d_entry = readdir(dirp))) {
+		if (is_dot_or_dotdot(d_entry->d_name))
+			continue;
+		snprintf(path, sizeof(path),
+			"/sys/class/net/%s/operstate",
+			d_entry->d_name);
+		if (readsz(path, oper_status, sizeof(oper_status)) == 0) {
+			strcat(total_if_status_str, d_entry->d_name);
+			strcat(total_if_status_str, ":");
+			nl = strchr(oper_status, '\n');
+			if (*nl)
+				*nl = '\0';
+			strcat(total_if_status_str, oper_status);
+			strcat(total_if_status_str, " ");
+		} else {
+			fprintf(stderr, "failed to read %s: %s\n",
+				path, strerror(errno));
+		}
+	}
+#ifdef _DEBUG
+	printf("interfaces status => \"%s\"\n", total_if_status_str);
+#endif
+	closedir(dirp);
+	return total_if_status_str;
+
+	return NULL;
 }

@@ -14,6 +14,8 @@ struct canon_time {
 	int minute;
 };
 
+#define ALLOCED_SZ_PTR char *
+
 int
 loads(char s_line[HELPER_LINE_LEN], struct sysload *cputimes);
 
@@ -25,3 +27,6 @@ mem_free_percent(void);
 
 struct canon_time
 timenow(void);
+
+ALLOCED_SZ_PTR
+report_ifaces(void);

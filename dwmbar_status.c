@@ -3,6 +3,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -120,6 +121,7 @@ main(void)
 	timer_t timer_id;
 
 	char *orig_rootwin_name;
+	char *ifaces_str;
 	Display *dpy;
 
 	struct sigaction sa;
@@ -130,7 +132,7 @@ main(void)
 	struct xkb_layout_state kbd_layout_state;
 
 	char s1[256];
-	char err_buf[1536];
+	char wbuf[1536];
 
 	initparams.v_maj = XkbMajorVersion;
 	initparams.v_min = XkbMinorVersion;
@@ -216,17 +218,19 @@ main(void)
 		}
 		if (!update_flag)
 			continue;
-
-		snprintf(err_buf, sizeof(err_buf),
-			"%s cpu:%.2f%% memfree:%.02f%% "
+		ifaces_str = report_ifaces();
+		snprintf(wbuf, sizeof(wbuf),
+			"%s %scpu:%.2f%% memfree:%.02f%% "
 			"%02i/%02i [%02i:%02i]",
 			kbd_layout_state.kb_names
 			[kbd_layout_state.active_index],
+			ifaces_str,
 			cpu_load_percentage, mem_free_percent(),
 			now.day, now.month, now.hour, now.minute);
-		XStoreName(dpy, RootWindow(dpy, DefaultScreen(dpy)),
-			err_buf);
+		XStoreName(dpy, RootWindow(dpy, DefaultScreen(dpy)), wbuf);
 		XFlush(dpy);
+		free(ifaces_str);
+		ifaces_str = NULL;
 		update_flag = 0;
 
 	} /* for */
