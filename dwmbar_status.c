@@ -15,6 +15,8 @@
 #define STATIC_MAX_LAYOUTS_COUNT	(12)
 /* X11 server socket polling interval in milliseconds */
 #define POLL_INTERVAL	(630)
+/* collect system data each UPDATE_BAR_INTERVAL seconds */
+#define UPDATE_BAR_INTERVAL	(2)
 /* collect stats from procfs upon this signal arrive */
 #define SIG_CHKPROC	(SIGUSR1)
 
@@ -97,9 +99,9 @@ setup_timers(timer_t *out_timer_id)
 		perror("[-] setup_timers(), timer_create");
 		return -1;
 	}
-	its.it_value.tv_sec = 2;
+	its.it_value.tv_sec = UPDATE_BAR_INTERVAL;
 	its.it_value.tv_nsec = 0;
-	its.it_interval.tv_sec = 2;
+	its.it_interval.tv_sec = UPDATE_BAR_INTERVAL;
 	its.it_interval.tv_nsec = 0;
 	if (timer_settime(timer_id, 0, &its, 0) == -1) {
 		perror("[-] setup_timers(), timer_settime");
@@ -145,7 +147,7 @@ main(void)
 	if (sigaction(SIGINT, &sa, NULL) == -1)
 		perror("warning: unable to set SIGINT handler");
 
-	xkb_open_default_display(&initparams, (void **)&dpy);
+	xkb_open_default_display(&initparams, &dpy);
 	if (dpy == NULL) {
 		fprintf(stderr, "[-] XkbOpenDisplay failure: %i\n",
 			initparams.xkb_result);
@@ -156,7 +158,6 @@ main(void)
 		|| setup_timers(&timer_id) == -1)
 		
 		goto _failed;
-
 	past = timenow();
 	loads(s1, &loadpast);
 
@@ -220,7 +221,7 @@ main(void)
 			continue;
 		ifaces_str = report_ifaces();
 		snprintf(wbuf, sizeof(wbuf),
-			"%s %scpu:%.2f%% memfree:%.02f%% "
+			"%s %scpu:%.2f%% memavail:%.02f%% "
 			"%02i/%02i [%02i:%02i]",
 			kbd_layout_state.kb_names
 			[kbd_layout_state.active_index],

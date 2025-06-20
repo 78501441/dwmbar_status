@@ -17,10 +17,10 @@ struct xkb_layout_state {
 };
 
 int
-xkb_open_default_display(struct xkb_initparams *initparams, void **out_dpy);
+xkb_open_default_display(struct xkb_initparams *initparams, Display **out_dpy);
 
 int
-xkbrules_layouts(void *d, struct xkb_layout_state *st);
+xkbrules_layouts(Display *d, struct xkb_layout_state *st);
 
 int
-retrieve_kbd_info(void *d, struct xkb_layout_state *kbdinfo);
+retrieve_kbd_info(Display *d, struct xkb_layout_state *kbdinfo);

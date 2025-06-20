@@ -8,9 +8,8 @@
 #include "xkb_helpers.h"
 
 int
-xkb_open_default_display(struct xkb_initparams *initparams, void **out_dpy)
+xkb_open_default_display(struct xkb_initparams *initparams, Display **out_dpy)
 {
-
 	*out_dpy = XkbOpenDisplay(NULL, &initparams->xkb_event_type,
 		&initparams->xkb_err, &initparams->v_maj, &initparams->v_min,
 		&initparams->xkb_result);
@@ -18,7 +17,7 @@ xkb_open_default_display(struct xkb_initparams *initparams, void **out_dpy)
 }
 
 int
-xkbrules_layouts(void *d, struct xkb_layout_state *st)
+xkbrules_layouts(Display *d, struct xkb_layout_state *st)
 {
 	Display *dpy = (Display *)d;
 	int fmt;
@@ -60,7 +59,7 @@ xkbrules_layouts(void *d, struct xkb_layout_state *st)
 }
 
 int
-retrieve_kbd_info(void *d, struct xkb_layout_state *kbdinfo)
+retrieve_kbd_info(Display *d, struct xkb_layout_state *kbdinfo)
 {
 	Display *dpy = (Display *)d;
 	int res = -1;

@@ -62,7 +62,7 @@ mem_free_percent(void)
 	char my_buf[128];
 	size_t cr;
 	double total_mem;
-	double free_mem;
+	double avail_mem;
 	const char *iter;
 	
 	FILE *f = fopen("/proc/meminfo", "r");
@@ -82,14 +82,16 @@ mem_free_percent(void)
 	iter = strchr(iter, '\n');
 	if (!iter)
 		return -1;
+	if ((iter = strchr(iter + 1, '\n')) == NULL)
+		return -1;
 	if ((iter = strchr(iter, ':')) == NULL)
 		return -1;
 	iter += 1;
 	while (*iter == ' ')
 		iter += 1;
-	if (sscanf(iter, "%lf ", &free_mem) != 1)
+	if (sscanf(iter, "%lf ", &avail_mem) != 1)
 		return 1;
-	return (free_mem / total_mem) * 100.0f;
+	return avail_mem / total_mem * 100.0f;
 }
 
 struct canon_time
@@ -139,12 +141,13 @@ report_ifaces(void)
 	DIR *dirp = opendir("/sys/class/net");
 	if (!dirp)
 		return NULL;
-
 	char *total_if_status_str = malloc(2048);
 	char oper_status[24];
 	struct dirent *d_entry;
 	char *nl;
+#ifdef _DEBUG
 	fprintf(stderr, "[debug] opened dir (%p)\n", (void *)dirp);
+#endif
 	total_if_status_str[0] = '\0';
 	while ((d_entry = readdir(dirp))) {
 		if (is_dot_or_dotdot(d_entry->d_name))
@@ -157,9 +160,8 @@ report_ifaces(void)
 			strcat(total_if_status_str, ":");
 			nl = strchr(oper_status, '\n');
 			if (*nl)
-				*nl = '\0';
+				*nl = ' ';
 			strcat(total_if_status_str, oper_status);
-			strcat(total_if_status_str, " ");
 		} else {
 			fprintf(stderr, "failed to read %s: %s\n",
 				path, strerror(errno));
