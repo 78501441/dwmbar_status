@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/file.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -12,13 +13,13 @@
 #include "sys_stat_helpers.h"
 #include "xkb_helpers.h"
 
-#define STATIC_MAX_LAYOUTS_COUNT	(12)
 /* X11 server socket polling interval in milliseconds */
 #define POLL_INTERVAL	(630)
 /* collect system data each UPDATE_BAR_INTERVAL seconds */
 #define UPDATE_BAR_INTERVAL	(2)
-/* collect stats from procfs upon this signal arrive */
+/* collect stats from / check procfs upon this signal arrive */
 #define SIG_CHKPROC	(SIGUSR1)
+#define LOCKFILE_NAME	("/dev/shm/dwmbar-status.lock")
 
 static volatile sig_atomic_t sigint_fired;
 static volatile sig_atomic_t stats_alarmed;
@@ -113,11 +114,36 @@ setup_timers(timer_t *out_timer_id)
 	return 0;
 }
 
+static int
+acquire_lock(void)
+{
+	int lockfd = open(LOCKFILE_NAME, O_RDWR | O_CREAT);
+	if (lockfd == -1) {
+		perror("[-] unable to open lockfile");
+		return -1;
+	}
+	if (flock(lockfd, LOCK_EX | LOCK_NB) == -1) {
+		perror("[-] unable to aqcuire lock");
+		return -1;
+	}
+	return lockfd;
+}
+
+static void
+release_lock(int id)
+{
+	if (flock(id, LOCK_UN) == -1)
+		perror("[warning] failed to remove lock");
+	close(id);
+	unlink(LOCKFILE_NAME);
+}
+
 int
 main(void)
 {
 	int update_flag = 1;
 	int retval = 3;
+	int lock;
 	double cpu_load_percentage = 0.0f;
 
 	timer_t timer_id;
@@ -135,6 +161,9 @@ main(void)
 
 	char s1[256];
 	char wbuf[1536];
+	lock = acquire_lock();
+	if (lock == -1)
+		return 3;
 
 	initparams.v_maj = XkbMajorVersion;
 	initparams.v_min = XkbMinorVersion;
@@ -236,6 +265,7 @@ main(void)
 
 	} /* for */
 	timer_delete(timer_id);
+	release_lock(lock);
 	retval = 0;
 _failed:
 	XCloseDisplay(dpy);
